@@ -7,7 +7,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChessBrowser", "ChessBrowse
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Resources", "Resources\Resources.csproj", "{C5B985E8-16C7-41F5-94DA-90F88598257D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChessTools", "ChessTools\ChessTools.csproj", "{6F647A60-4907-4333-A42F-79D9DE61944D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ChessTools", "ChessTools\ChessTools.csproj", "{6F647A60-4907-4333-A42F-79D9DE61944D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChessToolsTester", "ChessToolsTester\ChessToolsTester.csproj", "{83162090-76BF-47ED-9839-3223C2CA718D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6F647A60-4907-4333-A42F-79D9DE61944D} = {6F647A60-4907-4333-A42F-79D9DE61944D}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,6 +31,10 @@ Global
 		{6F647A60-4907-4333-A42F-79D9DE61944D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6F647A60-4907-4333-A42F-79D9DE61944D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6F647A60-4907-4333-A42F-79D9DE61944D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83162090-76BF-47ED-9839-3223C2CA718D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83162090-76BF-47ED-9839-3223C2CA718D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83162090-76BF-47ED-9839-3223C2CA718D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83162090-76BF-47ED-9839-3223C2CA718D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
