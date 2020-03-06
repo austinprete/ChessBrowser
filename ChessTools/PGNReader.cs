@@ -40,7 +40,7 @@ namespace ChessTools
 
     public class PGNReader
     {
-        public List<ChessGame> read(string filename)
+        public static List<ChessGame> read(string filename)
         {
             var chessGames = new List<ChessGame>();
             ChessGame chessGame = null;
