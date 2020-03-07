@@ -9,7 +9,7 @@ namespace ChessTools
     {
         public string Event;
         public string Site;
-        public DateTime EventDate;
+        public string EventDate;
         public string Round;
         public string White;
         public string Black;
@@ -80,7 +80,7 @@ namespace ChessTools
                             chessGame.Moves = "";
                         }
 
-                        chessGame.Moves += line;
+                        chessGame.Moves += line + "\r\n";
                     }
 
                 }
@@ -99,7 +99,7 @@ namespace ChessTools
                         chessGame.Site = value;
                         break;
                     case "EventDate":
-                        chessGame.EventDate = DateTime.Parse(value);
+                        chessGame.EventDate = value;
                         break;
                     case "Round":
                         chessGame.Round = value;

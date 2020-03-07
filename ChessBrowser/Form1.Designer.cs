@@ -19,6 +19,107 @@ namespace ChessBrowser
         /// </summary>
         private RadioButton winnerButton = null;
 
+
+        private uint QueryForPlayerAndUpdate(string name, uint elo, MySqlConnection conn)
+        {
+            string userQuerySQL = "select Name, Elo, pID from Players where Name=@Name limit 1";
+            string updateEloSQL = "update Players set Elo=@Elo where Name=@Name";
+            string addPlayerSQL = "insert into Players(Name, Elo) values (@Name, @Elo)";
+
+            MySqlCommand queryForUser = new MySqlCommand(userQuerySQL, conn);
+            queryForUser.Parameters.AddWithValue("@Name", name);
+
+            int count = 0;
+
+            UInt32 resultElo = 0;
+            UInt32 pID = 0;
+
+            using (var results = queryForUser.ExecuteReader())
+            {
+
+                while (results.Read())
+                {
+                    string resultName = (string)results[0];
+                    resultElo = (UInt32)results[1];
+                    pID = (UInt32)results[2];
+
+                    count++;
+                    break;
+                }
+            }
+
+            if (count == 0)
+            {
+                MySqlCommand addPlayer = new MySqlCommand(addPlayerSQL, conn);
+                addPlayer.Parameters.AddWithValue("@Name", name);
+                addPlayer.Parameters.AddWithValue("@Elo", elo);
+
+                addPlayer.ExecuteNonQuery();
+                pID = (UInt32)addPlayer.LastInsertedId;
+            }
+            else if (elo > resultElo)
+            {
+                MySqlCommand updateElo = new MySqlCommand(updateEloSQL, conn);
+                updateElo.Parameters.AddWithValue("@Name", name);
+                updateElo.Parameters.AddWithValue("@Elo", elo);
+
+                updateElo.ExecuteNonQuery();
+            }
+
+            return pID;
+        }
+
+        private static uint AddEvent(string name, string site, string date, MySqlConnection conn)
+        {
+            string addEventSQL = "insert ignore into Events (Name, Site, Date) values (@Name, @Site, @Date)";
+            string findEventSQL = "select eID from Events where Name=@Name and Site=@Site and Date=@Date";
+
+            MySqlCommand addEvent = new MySqlCommand(addEventSQL, conn);
+
+            addEvent.Parameters.AddWithValue("@Name", name);
+            addEvent.Parameters.AddWithValue("@Site", site);
+            addEvent.Parameters.AddWithValue("@Date", date);
+
+            addEvent.ExecuteNonQuery();
+
+            MySqlCommand findEvent = new MySqlCommand(findEventSQL, conn);
+            findEvent.Parameters.AddWithValue("@Name", name);
+            findEvent.Parameters.AddWithValue("@Site", site);
+            findEvent.Parameters.AddWithValue("@Date", date);
+
+            UInt32 eID = 0;
+
+            using (var results = findEvent.ExecuteReader())
+            {
+
+                while (results.Read())
+                {
+                    eID = (UInt32)results[0];
+                    break;
+                }
+            }
+
+            return eID;
+
+        }
+
+        private static void AddGame(string round, char result, string moves, uint whitePlayer, uint blackPlayer, uint eventID, MySqlConnection conn)
+        {
+            string addGameSQL = "insert ignore into Games (Round, Result, Moves, WhitePlayer, BlackPlayer, eID) values (@Round, @Result, @Moves, @WhitePlayer, @BlackPlayer, @eID)";
+
+            MySqlCommand addGame = new MySqlCommand(addGameSQL, conn);
+
+            addGame.Parameters.AddWithValue("@Round", round);
+            addGame.Parameters.AddWithValue("@Result", result);
+            addGame.Parameters.AddWithValue("@Moves", moves);
+            addGame.Parameters.AddWithValue("@WhitePlayer", whitePlayer);
+            addGame.Parameters.AddWithValue("@BlackPlayer", blackPlayer);
+            addGame.Parameters.AddWithValue("@eID", eventID);
+
+            addGame.ExecuteNonQuery();
+        }
+
+
         /// <summary>
         /// This function handles the "Upload PGN" button.
         /// Given a filename, parses the PGN file, and uploads
@@ -31,14 +132,8 @@ namespace ChessBrowser
             // assuimg you've typed a user and password in the GUI
             string connection = GetConnectionString();
 
-            // TODO: Load and parse the PGN file
-            //       We recommend creating separate libraries to represent chess data and load the file
-
-            // Use this to tell the GUI's progress bar how many total work steps there are
-            // For example, one iteration of your main upload loop could be one work step
-            // SetNumWorkItems(...);
             var chessGames = PGNReader.read(PGNfilename);
-
+            SetNumWorkItems(chessGames.Count);
 
             using (MySqlConnection conn = new MySqlConnection(connection))
             {
@@ -47,11 +142,20 @@ namespace ChessBrowser
                     // Open a connection
                     conn.Open();
 
-                    // TODO: iterate through your data and generate appropriate insert commands
+                    // Iterate through games and add to DB or modify if necessary
 
-                    // Use this to tell the GUI that one work step has completed:
-                    // WorkStepCompleted();
+                    foreach (ChessGame game in chessGames)
+                    {
+                        uint whitePID = QueryForPlayerAndUpdate(game.White, game.WhiteElo, conn);
+                        uint blackPID = QueryForPlayerAndUpdate(game.Black, game.BlackElo, conn);
 
+                        uint eventID = AddEvent(game.Event, game.Site, game.EventDate, conn);
+
+                        AddGame(game.Round, game.Result, game.Moves, whitePID, blackPID, eventID, conn);
+
+
+                        WorkStepCompleted();
+                    }
                 }
                 catch (Exception e)
                 {
@@ -96,10 +200,107 @@ namespace ChessBrowser
                     // Open a connection
                     conn.Open();
 
-                    // TODO: Generate and execute an SQL command,
-                    //       then parse the results into an appropriate string
-                    //       and return it.
-                    //       Remember that the returned string must use \r\n newlines
+                    var query = new MySqlCommand();
+
+                    string querySQL = "select e.Name as Event, e.Site, e.Date, wp.Name as White, wp.Elo as WhiteElo, bp.Name as Black, bp.Elo as BlackElo, g.Result, g.Moves from Games g ";
+                    querySQL += "inner join Players wp on g.WhitePlayer = wp.pID inner join Players bp on g.BlackPlayer = bp.pID inner join Events e on g.eID = e.eID";
+
+                    List<string> filters = new List<string>();
+
+                    if (white.Length > 0)
+                    {
+                        filters.Add("wp.Name=@White");
+                        query.Parameters.AddWithValue("@White", white);
+                    }
+
+                    if (black.Length > 0)
+                    {
+                        filters.Add("wp.Black=@Black");
+                        query.Parameters.AddWithValue("@Black", black);
+                    }
+
+                    if (black.Length > 0)
+                    {
+                        filters.Add("wp.Black=@Black");
+                        query.Parameters.AddWithValue("@Black", black);
+                    }
+
+                    if (opening.Length > 0)
+                    {
+                        filters.Add("g.Moves like @Moves");
+                        query.Parameters.AddWithValue("@Moves", opening + "%");
+                    }
+
+                    if (useDate)
+                    {
+                        filters.Add("e.Date >= @Start AND e.date <= @End");
+                        query.Parameters.AddWithValue("@Start", start);
+                        query.Parameters.AddWithValue("@End", end);
+                    }
+
+                    if (winner.Length > 0)
+                    {
+                        char result;
+
+                        switch (winner)
+                        {
+                            case "White":
+                                result = 'W';
+                                break;
+                            case "Black":
+                                result = 'B';
+                                break;
+                            default:
+                                result = 'D';
+                                break;
+                        }
+
+                        filters.Add("g.Result=@Result");
+                        query.Parameters.AddWithValue("@Result", result);
+                    }
+
+                    if (filters.Count > 0)
+                    {
+                        querySQL += " where ";
+                        querySQL += String.Join(" AND ", filters);
+                    }
+
+                    query.CommandText = querySQL;
+                    query.Connection = conn;
+
+                    using (var reader = query.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            string gameInfo = $"Event: {reader[0]}\r\n";
+                            gameInfo += $"Site: {reader[1]}\r\n";
+                            try
+                            {
+                                gameInfo += $"Date: {reader[2]}\r\n";
+                            }
+                            catch (MySql.Data.Types.MySqlConversionException e)
+                            {
+                                gameInfo += $"Date: Invalid\r\n";
+                            }
+                            gameInfo += $"White: {reader[3]} ({reader[4]})\r\n";
+                            gameInfo += $"Black: {reader[5]} ({reader[6]})\r\n";
+                            gameInfo += $"Result: {reader[7]}\r\n";
+
+                            if (showMoves)
+                            {
+                                gameInfo += reader[8];
+                            }
+
+                            gameInfo += "\r\n";
+
+                            parsedResult += gameInfo;
+
+                            numRows++;
+                        }
+                    }
+
+                    conn.Close();
+
                 }
                 catch (Exception e)
                 {
