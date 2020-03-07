@@ -153,7 +153,6 @@ namespace ChessBrowser
 
                         AddGame(game.Round, game.Result, game.Moves, whitePID, blackPID, eventID, conn);
 
-
                         WorkStepCompleted();
                     }
                 }
@@ -186,11 +185,9 @@ namespace ChessBrowser
             // assuimg you've typed a user and password in the GUI
             string connection = GetConnectionString();
 
-            // Build up this string containing the results from your query
+            // This string will contain the formatted results of the query
             string parsedResult = "";
 
-            // Use this to count the number of rows returned by your query
-            // (see below return statement)
             int numRows = 0;
 
             using (MySqlConnection conn = new MySqlConnection(connection))
@@ -265,6 +262,8 @@ namespace ChessBrowser
                         querySQL += String.Join(" AND ", filters);
                     }
 
+                    querySQL += " order by e.Date desc";
+
                     query.CommandText = querySQL;
                     query.Connection = conn;
 
@@ -278,7 +277,7 @@ namespace ChessBrowser
                             {
                                 gameInfo += $"Date: {reader[2]}\r\n";
                             }
-                            catch (MySql.Data.Types.MySqlConversionException e)
+                            catch (MySql.Data.Types.MySqlConversionException)
                             {
                                 gameInfo += $"Date: Invalid\r\n";
                             }

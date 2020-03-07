@@ -38,7 +38,7 @@ namespace ChessTools
 
     }
 
-    public class PGNReader
+    public static class PGNReader
     {
         public static List<ChessGame> read(string filename)
         {
@@ -47,6 +47,7 @@ namespace ChessTools
 
             string[] lines = System.IO.File.ReadAllLines(filename);
 
+            // Regex for tags
             Regex rx = new Regex(@"\[(?<tag>\w+).+""(?<value>.+)""]",
                 RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
@@ -55,19 +56,21 @@ namespace ChessTools
 
             foreach (string line in lines)
             {
-                // Find matches.
+                // Check line for tag
                 MatchCollection matches = rx.Matches(line);
 
                 string tag = "";
                 string value = "";
 
 
+                // If it contains a tag, then store the name and value
                 if (matches.Count == 1)
                 {
                     GroupCollection groups = matches[0].Groups;
                     tag = groups["tag"].Value;
                     value = groups["value"].Value;
-                } else
+                }
+                else // Otherwise we are beginning a moves sections or at the end of input
                 {
                     if (line.Length == 0)
                     {
@@ -85,7 +88,8 @@ namespace ChessTools
 
                 }
 
-                switch (tag) {
+                switch (tag)
+                {
                     case "Event":
                         if (chessGame != null)
                         {
